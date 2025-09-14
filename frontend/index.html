@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <title>Agente STRIDE — Análise de Arquitetura</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <script src="https://unpkg.com/cytoscape@3.26.0/dist/cytoscape.min.js"></script>
+  <style>
+    body{font-family:system-ui,Segoe UI,Arial; background:#0b1220; color:#e6edf3; margin:0; padding:24px}
+    h1{margin:0 0 16px}
+    .card{background:#111a2b; border:1px solid #223; border-radius:12px; padding:16px; margin-bottom:16px}
+    label{display:block; margin:8px 0 4px}
+    input,select,textarea,button{width:100%; padding:8px; border-radius:8px; border:1px solid #334; background:#0e1626; color:#e6edf3}
+    button{cursor:pointer; background:#10b981; border:0; margin-top:12px}
+    pre{white-space:pre-wrap; background:#0e1626; padding:12px; border-radius:8px; overflow:auto}
+    #cy{height:520px; background:#0e1626; border:1px solid #223; border-radius:12px}
+    .row{display:grid; grid-template-columns:1fr 1fr; gap:16px}
+    @media(max-width:900px){.row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <h1>Agente STRIDE — Análise de Arquitetura</h1>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <label>Desenho de Arquitetura (imagem)</label>
+        <input type="file" id="imagem" accept="image/*"/>
+        <label>Tipo de Aplicação</label>
+        <input id="tipo" placeholder="ex.: Web / API / Mobile"/>
+        <label>Métodos de Autenticação</label>
+        <input id="auth" placeholder="ex.: Entra ID / OAuth2 / SSO"/>
+        <label>Exposta na Internet?</label>
+        <select id="internet"><option>Sim</option><option>Não</option></select>
+        <label>Dados Sensíveis?</label>
+        <select id="dados"><option>Sim</option><option>Não</option></select>
+        <label>Descrição da Aplicação</label>
+        <textarea id="desc" rows="4" placeholder="Resumo do fluxo, componentes e dados."></textarea>
+        <button id="btn">Analisar</button>
+      </div>
+      <div>
+        <label>Resposta (JSON)</label>
+        <pre id="out">{}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>Grafo de Ameaças (Cytoscape)</label>
+    <div id="cy"></div>
+  </div>
+
+  <script>
+    const API = "http://localhost:8000/analisar_ameacas/";
+    const btn = document.getElementById('btn');
+    const out = document.getElementById('out');
+
+    function renderGraph(graph){
+      const elements = [
+        ...graph.nodes.map(n => ({ data: n.data })),
+        ...graph.edges.map(e => ({ data: e.data })),
+      ];
+      cytoscape({
+        container: document.getElementById('cy'),
+        elements,
+        style: [
+          { selector: 'node[kind = "categoria"]', style:{ 'background-color':'#3b82f6','label':'data(label)','font-size':'10px','color':'#fff'}},
+          { selector: 'node[kind = "ativo"]',     style:{ 'background-color':'#a855f7','label':'data(label)','font-size':'9px','color':'#fff'}},
+          { selector: 'node[kind = "ameaca"]',    style:{ 'background-color':'#ef4444','label':'data(label)','font-size':'10px','color':'#fff'}},
+          { selector: 'edge', style:{ 'width':2,'line-color':'#6b7280','target-arrow-color':'#6b7280','target-arrow-shape':'triangle','curve-style':'bezier'}},
+        ],
+        layout:{ name:'cose', animate:true }
+      });
+    }
+
+    btn.onclick = async () => {
+      const fd = new FormData();
+      const file = document.getElementById('imagem').files[0];
+      if (file) fd.append('imagem', file);
+      fd.append('tipo_aplicacao', document.getElementById('tipo').value || 'Web');
+      fd.append('autenticacao', document.getElementById('auth').value || 'Entra ID');
+      fd.append('acesso_internet', document.getElementById('internet').value || 'Sim');
+      fd.append('dados_sensiveis', document.getElementById('dados').value || 'Sim');
+      fd.append('descricao_aplicacao', document.getElementById('desc').value || '—');
+
+      const res = await fetch(API, { method:'POST', body: fd });
+      const data = await res.json();
+      out.textContent = JSON.stringify(data, null, 2);
+      if (data?.resultado?.graph) renderGraph(data.resultado.graph);
+    };
+  </script>
+</body>
+</html>

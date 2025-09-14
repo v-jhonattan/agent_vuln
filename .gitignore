@@ -1,0 +1,22 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node/static servers
+node_modules/
+
+# Credenciais / configs locais
+.env
+.env.*
+*.local
+
+# Artefatos gerados
+uploads/
+lab.db
+*.sqlite
+*.log
+
+# SO
+.DS_Store
+Thumbs.db
