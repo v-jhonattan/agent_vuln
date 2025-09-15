@@ -92,6 +92,45 @@ Status e provedor LLM.
     curl http://127.0.0.1:8000/healthz
 
 
+POST /analisar_ameacas/
+
+- Form fields:
+tipo_aplicacao, autenticacao, acesso_internet, dados_sensiveis, descricao_aplicacao, imagem (opcional)
+
+Exemplo (sem imagem)
+
+    curl -s -X POST http://127.0.0.1:8000/analisar_ameacas/ \
+      -F 'tipo_aplicacao=Web' \
+      -F 'autenticacao=Entra ID' \
+      -F 'acesso_internet=Sim' \
+      -F 'dados_sensiveis=Sim' \
+      -F 'descricao_aplicacao=App para salvar contratos em SQL' | jq .
+
+Exemplo (com imagem)
+
+    curl -s -X POST http://127.0.0.1:8000/analisar_ameacas/ \
+      -F 'imagem=@images/exemplo-diagrama.png' \
+      -F 'tipo_aplicacao=Web' \
+      -F 'autenticacao=Entra ID' \
+      -F 'acesso_internet=Sim' \
+      -F 'dados_sensiveis=Sim' \
+      -F 'descricao_aplicacao=App jurídica SQL' | jq .
+
+# 🌐 CORS (se der erro no navegador)
+
+No .env do backend:
+
+    ALLOWED_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+
+
+Teste:
+
+    curl -i -H "Origin: http://localhost:5173" http://127.0.0.1:8000/healthz | grep -i access-control-allow-origin
+    curl -i -X OPTIONS http://127.0.0.1:8000/analisar_ameacas/ \
+      -H "Origin: http://localhost:5173" \
+      -H "Access-Control-Request-Method: POST" | grep -Ei "allow-(origin|methods|headers)"
+
+
 ## 📸 Demonstração rápida
 
 **1) Formulário do agente (frontend)**
@@ -108,3 +147,39 @@ Status e provedor LLM.
 
 **5) /healthz mostrando LLM configurado**
 ![Healthz com provider/modelo](imagens/fsz.png)
+
+
+# 🖼️ Frontend (uso)
+
+1. Abra http://localhost:5173
+
+2. Preencha o formulário (opcional: envie imagem do diagrama)
+
+3. Clique Analisar → veja o JSON e o grafo STRIDE
+
+
+# 📁 Estrutura
+
+    vuln-arch-agent/
+    ├─ agent-api/
+    │  ├─ main.py
+    │  ├─ requirements.txt
+    │  ├─ .env.example  → copie para .env
+    │  └─ ...
+    ├─ frontend/
+    │  └─ index.html
+    ├─ images/
+    │  ├─ 01-front-form.png
+    │  ├─ 02-front-graph.png
+    │  ├─ 03-healthz-heuristico.png
+    │  ├─ 04-healthz-llm.png
+    │  ├─ 06-curl-sem-imagem.png
+    │  ├─ 07-curl-com-imagem.png
+    │  └─ 08-cors-ok.png
+    └─ README.md
+
+# 🔐 Aviso/Ética
+
+- Projeto educacional. Não use para avaliar sistemas de terceiros sem autorização.
+
+- Dados sensíveis: proteja chaves .env e não faça commit de segredos.
